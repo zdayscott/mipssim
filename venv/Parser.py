@@ -45,22 +45,37 @@ def Decoder(content):
         '42':'slt','43':'sltu'
     }
 
+    ItypOps = {
+        '4':'beq','5':'bne','6':'blez','7':'bgtz',
+        '8':'addi','9':'addiu',
+        '10':'slti','11':'sltiu',
+        '12':'andi','13':'ori','14':'xori',
+        '15':'lui','32':'lb','33':'lh','35':'lw','36':'lbu','37':'lhu',
+        '40':'sb','41':'sh','43':'sw'
+    }
+
+    JtypOps = {
+        '2':'j','3':'jal'
+    }
+
     i = 0
     for c in content:
         if c == 'DATA SEGMENT':
             break
-        #R-type
-        #print c[0:5]
-        if (c[0:5] == '00000'):
-            temp = [0]*6
-            temp[0] = c[0:6] #6 bit op code
-            temp[1] = c[6:11] #5 bit rs
-            temp[2] = c[11:16] #5 bit rt
-            temp[3] = c[16:21] #5 bit rd
-            temp[4] = c[21:26] #5 bit shamt
-            temp[5] = c[26:32] #6 bit funct
+        temp = [0] * 6
+        temp[0] = c[0:6]  # 6 bit op code
+        temp[1] = c[6:11]  # 5 bit rs
+        temp[2] = c[11:16]  # 5 bit rt
+        temp[3] = c[16:21]  # 5 bit rd
+        temp[4] = c[21:26]  # 5 bit shamt
+        temp[5] = c[26:32]  # 6 bit funct
+        textCode = [0] * 4
 
-            textCode = [0]*4
+        #R-type
+        if temp[0] == '00000':
+
+
+
             textCode[0] = RtypOps[str(int(temp[5],2))]
             textCode[1] = RegCodes[str(int(temp[3], 2))]
             textCode[2] = RegCodes[str(int(temp[1], 2))]
@@ -68,6 +83,9 @@ def Decoder(content):
 
 
             #print textCode
+        #J-type
+        elif 0 < int(temp[0],2) <= 3:
+            textCode[0] = RtypOps[str(int(temp[0], 2))]
 
 
         content[i] = textCode
