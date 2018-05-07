@@ -86,10 +86,19 @@ def Decoder(content):
         #J-type
         elif 0 < int(temp[0],2) <= 3:
             textCode[0] = JtypOps[str(int(temp[0], 2))]
+            textCode[1] = int(c[6:32], 2)
 
         #I-type
         elif 3 < int(temp[0],2) <= 46:
+            temp[1] = c[6:11]
+            temp[2] = c[11:16]
+            temp[3] = c[16:32]
             textCode[0] = ItypOps[str(int(temp[0], 2))]
+            textCode[1] = RegCodes[str(int(temp[2], 2))]
+            textCode[2] = RegCodes[str(int(temp[1], 2))]
+            textCode[3] = int(temp[3], 2)
+
+
 
         content[i] = textCode
         textCode = 0
