@@ -64,16 +64,16 @@ def Decoder(content):
             break
         temp = [0] * 6
         temp[0] = c[0:6]  # 6 bit op code
-        temp[1] = c[6:11]  # 5 bit rs
-        temp[2] = c[11:16]  # 5 bit rt
-        temp[3] = c[16:21]  # 5 bit rd
-        temp[4] = c[21:26]  # 5 bit shamt
-        temp[5] = c[26:32]  # 6 bit funct
+
         textCode = [0] * 4
 
         #R-type
-        if temp[0] == '00000':
-
+        if temp[0] == '000000':
+            temp[1] = c[6:11]  # 5 bit rs
+            temp[2] = c[11:16]  # 5 bit rt
+            temp[3] = c[16:21]  # 5 bit rd
+            temp[4] = c[21:26]  # 5 bit shamt
+            temp[5] = c[26:32]  # 6 bit funct
 
 
             textCode[0] = RtypOps[str(int(temp[5],2))]
@@ -85,8 +85,11 @@ def Decoder(content):
             #print textCode
         #J-type
         elif 0 < int(temp[0],2) <= 3:
-            textCode[0] = RtypOps[str(int(temp[0], 2))]
+            textCode[0] = JtypOps[str(int(temp[0], 2))]
 
+        #I-type
+        elif 3 < int(temp[0],2) <= 46:
+            textCode[0] = ItypOps[str(int(temp[0], 2))]
 
         content[i] = textCode
         textCode = 0
