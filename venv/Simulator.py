@@ -1,6 +1,6 @@
 
 
-import re, sys
+import
 
 class ZSim:
 
@@ -26,13 +26,17 @@ class ZSim:
                         'div':'/',   'mul':'*',  'xor':'^',  'xori':'^'
                            }
 
+        for x in instrutions:
+            self.Execute(x)
+
+
     def GetRegister(self, reg):
         try: return self.registers[reg]
         except: print "You done' broke it!"
 
         #def RunLine/Lines
 
-    def execute(self, line):
+    def Execute(self, line):
         if re.compile('^.*:').match(line[0]): return
         elif re.compile('^syscall').match(line[0]): self.Syscall()
         elif re.compile('^(beq|bne)').match(line[0]):self.Branch(line)
@@ -44,4 +48,24 @@ class ZSim:
 
 
     def LogicArith(self,line):
-        instruction = re.compile()
+        print "LogicArith: " + line[0]
+
+    def Syscall(self):
+        print "syscall: " + line[0]
+
+    def Branch(self,line):
+        print "Branch: " + line[0]
+
+    def Jump(self, line):
+        print "Jump: " + line[0]
+
+    def LoadStore(self,line):
+        print "LoadStore: " + line[0]
+
+    def SetLessThan(self,line):
+        print "SetLessThan: " + line[0]
+
+    def Move(self, line):
+        print "Move: " + line[0]
+
+s = ZSim(4000,0,Decoder(Parser()))
