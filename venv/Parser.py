@@ -12,6 +12,7 @@ def Parser():
         i = 0
         for c in content:
             if (c == 'DATA SEGMENT'):
+                del content[i:len(content)]
                 break
             intC = int(c, 16)
             content[i] = bin(intC)[2:].zfill(32)
@@ -86,7 +87,8 @@ def Decoder(content):
         #J-type
         elif 0 < int(temp[0],2) <= 3:
             textCode[0] = JtypOps[str(int(temp[0], 2))]
-            textCode[1] = int(c[6:32], 2)
+            textCode[1] = str(int(c[6:32], 2))
+            textCode[2:] = []
 
         #I-type
         elif 3 < int(temp[0],2) <= 46:
@@ -96,15 +98,21 @@ def Decoder(content):
             textCode[0] = ItypOps[str(int(temp[0], 2))]
             textCode[1] = RegCodes[str(int(temp[2], 2))]
             textCode[2] = RegCodes[str(int(temp[1], 2))]
-            textCode[3] = int(temp[3], 2)
+            textCode[3] = str(int(temp[3], 2))
 
 
 
         content[i] = textCode
         textCode = 0
         i+=1
-    print content
+    #print content
 
+    i = 0
+    for c in content:
+        content[i] = ' '.join(c)
+        i += 1
+
+    print content
 
 
 
