@@ -2,16 +2,16 @@ import binascii, re, sys
 
 class ZSim:
 
-    def __init__(self, pc=0, instrutions = []):
+    def __init__(self, instrutions = []):
         self.data = {}
-        self.pc = pc
+        self.ExitCode = False
         self.text = instrutions
         self.registers = {
                         '$0' : 0, '$at': 0, '$v0': 0, '$v1': 0,
                         '$a0': 0, '$a1': 0, '$a2': 0, '$a3': 0,
                         '$t0': 0, '$t1': 0, '$t2': 0, '$t3': 0,
                         '$t4': 0, '$t5': 21500, '$t6': 25605, '$t7': 0,
-                        '$s0': 268500992, '$s1': 0, '$s2': 0, '$s3': 0,
+                        '$s0': 0, '$s1': 0, '$s2': 0, '$s3': 0,
                         '$s4': 0, '$s5': 0, '$s6': 0, '$s7': 0,
                         '$t8': 0, '$t9': 0, '$k0': 0, '$k1': 0,
                         '$gp': 0, '$sp': 0, '$s8': 0, '$ra': 0
@@ -23,22 +23,54 @@ class ZSim:
                         'sll':'<<', 'sllv':'<<', 'srl':'>>', 'srlv':'>>',
                         'div':'/',   'mul':'*',  'xor':'^',  'xori':'^'
                            }
+        self.pc = int('400000', 16)
         itr = 0
+        DS = False
         for i in instrutions:
-            address = bin(int('400000', 16) + itr*4)
-            print address
-            self.data[address] = i
-            print self.data[address]
-            itr += 1
+            if i == 'DATA SEGMENT':
+                #print 'data found!'
+                DS = True
+            elif DS:
+                #print 'DO Stuff!!!'
+                adder, dat = i.split(' ')
+                #print adder, dat
+                adder = bin(int(adder[2:], 16))
+                self.data[adder] = bin(int(dat[2:], 16))
 
-            self.Execute(i)
+            else:
+                address = bin(int('400000', 16) + itr*4)
+                #print address
+                self.data[address] = i
+                #print self.data[address]
+                itr += 1
+
+                '''EXECUTION MOVE LATER'''
+                #self.Execute(i)
+                #self.pc += 4
+
+    def RunToCompletion(self):
+        print 'Yeah!'
+        while self.ExitCode == False and self.data.has_key(bin(self.pc)):
+            self.Execute(self.data[bin(self.pc)])
             self.pc += 4
 
+    def RunNLines(self,n):
+        while n > 0 and self.ExitCode == False and self.data.has_key(bin(self.pc)):
+            self.Execute(self.data[bin(self.pc)])
+            self.pc += 4
+            n -= 1
 
+    def RunLine(self):
+        self.Execute(self.data[bin(self.pc)])
+        self.pc += 4
 
-    def GetRegister(self, reg):
-        try: return self.registers[reg]
+    def PrintRegister(self, reg):
+        try: print hex(self.registers[reg])
         except: print "You done' broke it!"
+
+    def PrintDataAtAddress(self,addr):
+        try:print hex(self.data[bin(addr)])
+        except: print 'Nope! No Data here son!'
 
         #def RunLine/Lines
 
@@ -54,23 +86,29 @@ class ZSim:
 
 
     def LogicArith(self,line):
-        print "LogicArith: " + line[0]
+        print "LogicArith: " + (line[0] + line[1] + line[2] + line[3]).format(' ')
         funct = self.functLookUp[line[0]]
         reg1, reg2 = line[1], line[2]
         if 'i' in line[0] or line[0] in ('sll','srl'):
             self.registers[reg1] = eval(reg2 + funct + line[3])
         else:
             reg3 = line[3]
-            self.registers[reg1] = eval(str(self.GetRegister(reg2))+funct+str(self.GetRegister(reg3)))
-            print reg1 + ' = ' + reg2+funct+reg3
-            print str(self.GetRegister(reg1)) + ' = ' + str(self.GetRegister(reg2))+funct+str(self.GetRegister(reg3))
+            self.registers[reg1] = eval(str(self.registers[reg2])+funct+str(self.registers[reg3]))
+            #print reg1 + ' = ' + reg2+funct+reg3
+            #print str(self.GetRegister(reg1)) + ' = ' + str(self.GetRegister(reg2))+funct+str(self.GetRegister(reg3))
 
     def Syscall(self):
         print "syscall: " + line[0]
+        if self.registers['$v0'] == 1 or self.registers['$v0'] == 4:
+            print self.data[bin(self.registers['$a0'])]
+        elif self.registers['$v0'] == 5:
+            return self.registers['$v0']
+        elif self.registers['$v0'] == 10:
+            self.ExitCode = True
 
     def Branch(self,line):
         print "Branch: " + line[0]
-        print self.pc
+        #print self.pc
         reg1, reg2 = line[1], line[2]
         if self.registers[reg1] == self.registers[reg2]:
             if line[0] == 'beq':
@@ -79,7 +117,7 @@ class ZSim:
             if line[0] == 'bne':
                 self.pc = self.pc + int(line[3])*4
 
-        print self.pc
+        #print self.pc
 
 
 
@@ -89,6 +127,7 @@ class ZSim:
         print str(bin(int(line[1])))[:2].zfill(26)
         address = bin(line[1])
 '''
+        #print self.pc
         pcRollover = str(self.pc).zfill(32)[:4]
 
         if line[0] == 'jr':
@@ -96,11 +135,17 @@ class ZSim:
             self.pc = self.registers(reg)
         elif line[0] == 'jal':
             self.registers['$ra'] = self.pc + 4
-            address = pcRollover + str(bin(line[1])[:2].zfill(26))+ '0'
-            self.pc = address
+            jmp = bin(int(line[1]))[2:]
+            #print jmp
+            address = pcRollover + jmp + '00'
+            self.pc = int(address,2)
         else:
-            address = pcRollover + str(bin(line[1])[:2].zfill(26))+ '0'
-            self.pc = address
+            jmp = bin(int(line[1]))[2:].zfill(26)
+            #print jmp
+            address = pcRollover + jmp + '00'
+            self.pc = int(address,2)
+
+        #print bin(self.pc)
 
 
 
@@ -108,19 +153,38 @@ class ZSim:
 
     def LoadStore(self,line):
         print "LoadStore: " + line[0]
+        reg = line[2]
+        regdata = self.registers[reg]
+        biregdata = bin(regdata)
+        #print biregdata
+        biregdata = bin(regdata)[2:].zfill(32)
+        #print biregdata
+        address = int(biregdata, 2) + int(line[3])
+        address = bin(address)
+
+        if line[0] == 'sw':
+
+            self.data[address] = self.registers[line[1]]
+
+        elif line[0] == 'lw':
+            if self.data.has_key(address):
+                self.registers[line[1]] = self.data[address]
+            else:
+                print "You Done Broke it! Error Code: 404 data not found!"
+
 
     def SetLessThan(self,line):
         print "SetLessThan: " + line[0]
         if line[0] == 'slt':
             reg1, reg2, reg3 = line[1], line[2], line[3]
-            if self.GetRegister(reg2) < self.GetRegister(reg3):
+            if self.registers[reg2] < self.registers[reg3]:
                 self.registers[reg1] = 1
             else:
                 self.registers[reg1] = 0
         elif line[0] == 'slti':
             reg1, reg2 = line[1], line[2]
             immidiate = line[3]
-            if self.GetRegister(reg2) < immidiate:
+            if self.registers[reg2] < immidiate:
                 self.registers[reg1] = 1
             else:
                 self.registers[reg1] = 0
@@ -137,8 +201,8 @@ class ZSim:
 
 
 # Parsing
-def Parser():
-    with open('Test.txt', 'r') as f:
+def Parser(input = 'Test.txt'):
+    with open(input, 'r') as f:
         content = f.readlines()
 
         content = [x.strip() for x in content]
@@ -148,7 +212,7 @@ def Parser():
         i = 0
         for c in content:
             if (c == 'DATA SEGMENT'):
-                del content[i:len(content)]
+             #   del content[i:len(content)]
                 break
             intC = int(c, 16)
             content[i] = bin(intC)[2:].zfill(32)
@@ -251,9 +315,5 @@ def Decoder(content):
         i += 1
     '''
 
-    print content
+    #print content
     return content
-
-
-
-s = ZSim(0,Decoder(Parser()))
