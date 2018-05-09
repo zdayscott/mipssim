@@ -2,8 +2,8 @@ import binascii, re, sys
 
 class ZSim:
 
-    def __init__(self, mem = 4000, pc=0, instrutions = []):
-        self.data = [0 for x in range(mem)]
+    def __init__(self, pc=0, instrutions = []):
+        self.data = {}
         self.pc = pc
         self.text = instrutions
         self.registers = {
@@ -23,8 +23,17 @@ class ZSim:
                         'sll':'<<', 'sllv':'<<', 'srl':'>>', 'srlv':'>>',
                         'div':'/',   'mul':'*',  'xor':'^',  'xori':'^'
                            }
+        itr = 0
         for i in instrutions:
+            address = bin(int('400000', 16) + itr*4)
+            print address
+            self.data[address] = i
+            print self.data[address]
+            itr += 1
+
             self.Execute(i)
+            self.pc += 4
+
 
 
     def GetRegister(self, reg):
@@ -61,18 +70,71 @@ class ZSim:
 
     def Branch(self,line):
         print "Branch: " + line[0]
+        print self.pc
+        reg1, reg2 = line[1], line[2]
+        if self.registers[reg1] == self.registers[reg2]:
+            if line[0] == 'beq':
+                self.pc = self.pc + int(line[3])*4
+        else:
+            if line[0] == 'bne':
+                self.pc = self.pc + int(line[3])*4
+
+        print self.pc
+
+
 
     def Jump(self, line):
-        print "Jump: " + line[0]
+        '''print "Jump: " + line[0]
+        print bin(int(line[1]))
+        print str(bin(int(line[1])))[:2].zfill(26)
+        address = bin(line[1])
+'''
+        pcRollover = str(self.pc).zfill(32)[:4]
+
+        if line[0] == 'jr':
+            reg = line[1]
+            self.pc = self.registers(reg)
+        elif line[0] == 'jal':
+            self.registers['$ra'] = self.pc + 4
+            address = pcRollover + str(bin(line[1])[:2].zfill(26))+ '0'
+            self.pc = address
+        else:
+            address = pcRollover + str(bin(line[1])[:2].zfill(26))+ '0'
+            self.pc = address
+
+
+
+
 
     def LoadStore(self,line):
         print "LoadStore: " + line[0]
 
     def SetLessThan(self,line):
         print "SetLessThan: " + line[0]
+        if line[0] == 'slt':
+            reg1, reg2, reg3 = line[1], line[2], line[3]
+            if self.GetRegister(reg2) < self.GetRegister(reg3):
+                self.registers[reg1] = 1
+            else:
+                self.registers[reg1] = 0
+        elif line[0] == 'slti':
+            reg1, reg2 = line[1], line[2]
+            immidiate = line[3]
+            if self.GetRegister(reg2) < immidiate:
+                self.registers[reg1] = 1
+            else:
+                self.registers[reg1] = 0
 
     def Move(self, line):
         print "Move: " + line[0]
+        reg1, reg2 = line[1], line[2]
+        self.registers[reg1] = self.GetRegister(reg2)
+
+
+
+
+###------------------------------------------------PARSER_DECODER----------------------------------------------------###
+
 
 # Parsing
 def Parser():
@@ -96,6 +158,7 @@ def Parser():
         #print content
 
         return content
+
 
 def Decoder(content):
 
@@ -182,14 +245,15 @@ def Decoder(content):
     #print content
 
     i = 0
-    '''for c in content:
+    '''
+        for c in content:
         content[i] = ' '.join(c)
         i += 1
-        '''
+    '''
 
     print content
     return content
 
 
 
-s = ZSim(4000,0,Decoder(Parser()))
+s = ZSim(0,Decoder(Parser()))
